@@ -1,158 +1,153 @@
-#include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 #include "main.h"
+#include <stdarg.h>
 
 /**
- * _printf - produces output according to a format
- * @format: The specified format
- *
- * Return: The number of characters that were printed
+ * _printf - function produces output according to a format
+ * @format: is a pointer to a string
+ * Return: is the count of printed characters
  */
 int _printf(const char *format, ...)
 {
-	int i = 0 tmp, processing_escape = FALSE, error = 1, last_token;
-	fmt_info_t fmt_info;
+	const char *string;
+
+	int count = 0;
 	va_list args;
 
-	if (!format || (format[0] == '%' && format[1] == '\0'))
+	if (!format)
 		return (-1);
+
 	va_start(args, format);
-	write_to_buffer(0, -1);
-	for (i = 0; format && *(format + i) != '\0'; i++)
-	{
-		if (processing_escape)
-		{
-			tmp = read_format_info(format + i, args, &fmt_info, &last_token);
-			processing_escape = FALSE;
-			set_format_error(format, &i, tmp, last_token, &error);
-			if (is_specifier(fmt_info.spec))
-				write_format(&args, &fmt_info);
-			i += (is_specifier(fmt_info.spec) ? tmp : 0);
-		}
-		else
-		{
-			if (*(format + i) == '%')
-				processing_escape = TRUE;
-			else
-				_putchar(*(format + i));
-		}
-	}
-	write_to_buffer(0, 1);
+	string = format;
+
+	count = loop_format(string, args);
+
 	va_end(args);
-	return (error <= 0 ? error : write_to_buffer('\0', -2));
+
+	return (count);
 }
 
 /**
- * write_format - write data formatted against some parameters
- * @args_list: The arguments list
- * @fmt: The format info parameters that were read
+ * loop_format - function is to print format
+ * @format: is a pointer to a string
+ * @args: is a va_list args
+ * Return: is an integer
  */
-void write_format(va_list *args_list, fmt_info_t *fmt_info)
+int loop_format(const char *format, va_list args)
 {
-	int i;
-	spec_printer_t spec_printers[] = {
-		{'%', convert_fmt_percent},
-		{'p', convert_fmt_p},
-		{'c', convert_fmt_c},
-		{'s', convert_fmt_s},
-		{'d', convert_fmt_di},
-		{'i', convert_fmt_di},
-		{'X', convert_fmt_xX},
-		{'x', convert_fmt_xX},
-		{'o', convert_fmt_o},
-		{'u', convert_fmt_u},
-		/* #begin custom specifiers */
-		{'b', convert_fmt_b},
-		{'R', convert_fmt_R},
-		{'r', convert_fmt_r},
-		{'S', convert_fmt_S},
-		/* #end */
-		{'F', convert_fmt_fF},
-		{'f', convert_fmt_fF},
-	};
+	int i = 0, counter = 0, flag = 0, check_flag = 0, f_counter = 0;
 
-	for (i = 0; i < 23 && spec_printers[i].spec != '\0'; i++)
+	while (i < _strlen((char *)format) && *(format + i) != '\0')
 	{
-		if (fmt_info->spec == spec_printers[i].spec)
+		char charac = format[i];
+		if (charac == '%')
 		{
-			spec_printers[i].print_arg(arg_list, fmt_info);
-			break;
+			flag++, i++;
+			charac = format[i];
+			if (charac == '\0' && _strlen((char *)format) == 1)
+				return (-1);
+			if (charac == '\0')
+				return (counter);
+			if (charac == '%')
+				flag++;
+			else
+			{
+				f_counter = func_service(charac, args);
+				if (f_counter >= 0 && f_counter != -1)
+				{
+					i++;
+					charac = format[i];
+					if (charac == '%')
+						flag--;
+					counter += f_counter;
+				}
+				else if (f_counter == -1 && charac != '\n' && flag == 1)
+					counter += _putchar('%');
+			}
 		}
+		check_flag = check_percent(&flag, charac);
+		counter += check_flag;
+		if (check_flag == 0 && charac != '%' && charac != '\0')
+			counterr += _putchar(charac), i++;
+		check_flag = 0;
 	}
+	return (counter);
 }
 
 /**
- * _putstr - writes the given string to the buffer
- * @str: The string to write
- *
- * Return: on succes 1
- * On error, -1 is returned, and errno is set appropriately
+ * check_percent - print a percentage
+ * @flag: is address of an int
+ * @charac: is a char
+ * Return: is 1 if % was printed, 0 otherwise
  */
-int _putstr(char *str)
-{
-	int i, out;
 
-	for (i = 0; str && *(str + i) != 0; i++)
-		out = _putchar(*(str + i));
-	return (out);
+int check_percent(int *flag, char charac)
+{
+	int count = 0;
+	int tmp;
+
+	tmp = *flag;
+
+	if (tmp == 2 && charac == '%')
+	{
+		count = _putchar('%');
+		tmp = 0;
+	}
+	return (count);
 }
 
 /**
- * _putchar - writes the character c to the buffer
- * @c: the character to  the pointer
- *
- * Return: On success 1
- * On error, -1 is returned, and errno is set appropriately
+ * func_service - takes arguments and prints it accordingly
+ * @charac: is a char or type determinant
+ * @args: is a va_list
+ * return: is the number of character printed
  */
-int _putchar(char c)
+int func_service(char charac, va_list args)
 {
-	return (write_to_buffer(c, 0));
+	int count = 0;
+	count = _switch(charac, args);
+	return (count);
 }
 
 /**
- * write_to_buffer - writes a char to the buffer based on action code
- * @c: the character to write
- * @action: the action to perform
- * -1-> reset the static variables
- * 0-> write char to buffer
- * 1-> dont write character to buffer but empty onto stdout
- * -2-> the number of characters written to stdout
- *
- *  Return: On succes 1
- *  On error, -1 is returned, and errno is set appropriately
+ * _switch - switch character to find arg
+ * @arg: is a va_list argument
+ * @c: is a char
+ * Return: count of printed charcters
  */
-int write_to_buffer(char c, char action)
+int _switch(char c, va_list arg)
 {
-	static int i;
-	static int chars_count;
-	static char buffer[1024];
-	static char out;
+	int count = 0;
 
-	if (i < 1024 && action == 0)
+	switch (c)
 	{
-		out = chars_count < 1 ? 1 : out;
-		buffer[i] = c;
-		i++;
-		chars_count++;
+		case 'c':
+			count += print_character(arg);
+			break;
+		case 'd':
+		case 'i':
+			count += print_signInt(arg, 10);
+			break;
+		case 's':
+			count += print_string(arg);
+			break;
+		case 'x':
+			count += print_base16_upper_lower(arg, "0123456789abcdef");
+			break;
+		case 'X':
+			count += print_base16_upper_lower(arg, "0123456789ABCDEF");
+			break;
+		case 'p':
+			count += print_addr(arg);
+			break;
+		case 'o':
+			count += print_unsignedInt(arg, 8);
+			break;
+		case 'u':
+			count += print_unsignedInt(arg, 10);
+			break;
+		default:
+			count = -1;
 	}
-	if (i >= 1024 || action == 1)
-	{
-		out = write(1, buffer, i);
-		i = 0;
-		mem_set(buffer, 1024, 0);
-	}
-	if (action == -1)
-	{
-		i = 0;
-		chars_count = 0;
-		mem_set(buffer, 1024, 0);
-	}
-	if (action == -2)
-	{
-		return (chars_count);
-	}
-	return (out);
+	return (count);
 }
+
