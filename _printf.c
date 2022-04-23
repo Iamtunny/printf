@@ -150,4 +150,3 @@ int _switch(char c, va_list arg)
 	}
 	return (count);
 }
-
