@@ -13,7 +13,7 @@ int print_string(va_list arg)
 
 	int count = 0;
 
-	str = (count char *)va_arg(arg, char *);
+	str = (const char *)va_arg(arg, char *);
 	if (!str)
 	{
 		str = "(null)";

@@ -67,7 +67,7 @@ int loop_format(const char *format, va_list args)
 		check_flag = check_percent(&flag, charac);
 		counter += check_flag;
 		if (check_flag == 0 && charac != '%' && charac != '\0')
-			counterr += _putchar(charac), i++;
+			counter += _putchar(charac), i++;
 		check_flag = 0;
 	}
 	return (counter);

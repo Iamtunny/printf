@@ -48,7 +48,7 @@ int print_unsignedInt(va_list arg, int base)
 {
 	unsigned int i;
 
-	char *s
+	char *s;
 
 	int count = 0;
 
